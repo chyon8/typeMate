@@ -60,20 +60,61 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // 2. NOW show Loading Window
             self.suggestionWindow?.showLoading()
+            self.suggestionWindow?.updateContextStatus()
             
             // 3. Capture Context in Background using the PRE-CAPTURED element
             DispatchQueue.global(qos: .userInitiated).async {
-                let context = self.contextReader.captureContext(from: focusedElement)
+                let rawContext = self.contextReader.captureContext(from: focusedElement)
                 
                 // 4. Update UI on Main Thread
                 DispatchQueue.main.async {
-                    if let context = context {
-                        print("[AppDelegate] Captured: \(context.appName), Context: \(context.selectedText.prefix(30))...")
-                        self.suggestionWindow?.showDebug(context)
-                    } else {
+                    guard var context = rawContext else {
                         print("[AppDelegate] Failed to capture context")
                         self.suggestionWindow?.hide()
+                        return
                     }
+                    
+                    // Apply context priority logic
+                    let effectiveContext = ContextManager.shared.getEffectiveContext(
+                        autoContext: context.selectedText
+                    )
+                    
+                    // Create updated context with effective context
+                    context = CapturedContext(
+                        appName: context.appName,
+                        selectedText: effectiveContext,
+                        valueText: context.valueText,
+                        selectionBounds: context.selectionBounds
+                    )
+                    
+                    print("[AppDelegate] Captured: \(context.appName), Context: \(context.selectedText.prefix(30))...")
+                    self.suggestionWindow?.showDebug(context)
+                }
+            }
+        }
+        
+        // Handle Save Context (Cmd+Shift+C)
+        inputManager.onSaveContext = { [weak self] in
+            print("[AppDelegate] Save Context Triggered!")
+            guard let self = self else { return }
+            
+            // Get currently selected text from the focused element
+            if let focusedElement = self.contextReader.getFocusedElement() {
+                // Try to read selected text first
+                var value: CFTypeRef?
+                let result = AXUIElementCopyAttributeValue(
+                    focusedElement, 
+                    kAXSelectedTextAttribute as CFString, 
+                    &value
+                )
+                
+                if result == .success, let text = value as? String, !text.isEmpty {
+                    ContextManager.shared.saveContext(text)
+                    ToastWindow.show("문맥저장")
+                    print("[AppDelegate] Context saved: \(text.prefix(50))...")
+                } else {
+                    print("[AppDelegate] No selected text to save")
+                    ToastWindow.show("텍스트를 선택해주세요")
                 }
             }
         }

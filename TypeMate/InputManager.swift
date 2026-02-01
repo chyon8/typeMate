@@ -106,11 +106,26 @@ class InputManager {
             return nil
         }
         
+        // Check for Cmd + Shift + C (KeyCode 8)
+        if keyCode == 8 && flags.contains(.maskCommand) && flags.contains(.maskShift) {
+            print("[InputManager] Shortcut Cmd+Shift+C detected!")
+            
+            DispatchQueue.main.async { [weak self] in
+                self?.onSaveContext?()
+            }
+            
+            // Swallow the event
+            return nil
+        }
+        
         return Unmanaged.passUnretained(event)
     }
     
-    /// Callback when the trigger shortcut is pressed
+    /// Callback when the trigger shortcut is pressed (Cmd+Shift+I)
     var onTriggerShortcut: (() -> Void)?
+    
+    /// Callback when the save context shortcut is pressed (Cmd+Shift+C)
+    var onSaveContext: (() -> Void)?
     
     /// Simulates Cmd+V keystroke
     private func simulatePasteCommand() {

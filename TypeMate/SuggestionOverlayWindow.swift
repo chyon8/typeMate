@@ -57,6 +57,21 @@ final class SuggestionOverlayWindow: NSWindow {
         return label
     }()
     
+    private let useContextCheckbox: NSButton = {
+        let checkbox = NSButton(checkboxWithTitle: "문맥 이용하기", target: nil, action: nil)
+        checkbox.font = NSFont.systemFont(ofSize: 11)
+        checkbox.state = .on
+        return checkbox
+    }()
+    
+    private let contextStatusLabel: NSTextField = {
+        let label = NSTextField(labelWithString: "")
+        label.font = NSFont.systemFont(ofSize: 11)
+        label.textColor = .systemBlue
+        label.alignment = .left
+        return label
+    }()
+    
     // MARK: - Initialization
     
     init() {
@@ -128,14 +143,34 @@ final class SuggestionOverlayWindow: NSWindow {
         // 3. Stack View (Middle)
         mainView.addSubview(stackView)
         
-        // 4. Hints (Bottom)
-        mainView.addSubview(hintsLabel)
+        // 4. Bottom Bar (Checkbox + Status + Hints)
+        let bottomBar = NSStackView()
+        bottomBar.orientation = .horizontal
+        bottomBar.spacing = 12
+        bottomBar.alignment = .centerY
+        bottomBar.distribution = .fill
+        
+        // Configure checkbox action
+        useContextCheckbox.target = self
+        useContextCheckbox.action = #selector(checkboxToggled)
+        
+        bottomBar.addArrangedSubview(useContextCheckbox)
+        bottomBar.addArrangedSubview(contextStatusLabel)
+        
+        // Spacer to push hints to the right
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        bottomBar.addArrangedSubview(spacer)
+        
+        bottomBar.addArrangedSubview(hintsLabel)
+        
+        mainView.addSubview(bottomBar)
         
         // Layout
         inputContainer.translatesAutoresizingMaskIntoConstraints = false
         promptField.translatesAutoresizingMaskIntoConstraints = false
         stackView.translatesAutoresizingMaskIntoConstraints = false
-        hintsLabel.translatesAutoresizingMaskIntoConstraints = false
+        bottomBar.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             // Input Container
@@ -153,13 +188,30 @@ final class SuggestionOverlayWindow: NSWindow {
             stackView.topAnchor.constraint(equalTo: inputContainer.bottomAnchor, constant: 20),
             stackView.leadingAnchor.constraint(equalTo: mainView.leadingAnchor, constant: 20),
             stackView.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(equalTo: hintsLabel.topAnchor, constant: -20),
+            stackView.bottomAnchor.constraint(equalTo: bottomBar.topAnchor, constant: -20),
             
-            // Hints
-            hintsLabel.bottomAnchor.constraint(equalTo: mainView.bottomAnchor, constant: -12),
-            hintsLabel.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -20),
-            hintsLabel.leadingAnchor.constraint(equalTo: mainView.leadingAnchor, constant: 20)
+            // Bottom Bar
+            bottomBar.bottomAnchor.constraint(equalTo: mainView.bottomAnchor, constant: -12),
+            bottomBar.leadingAnchor.constraint(equalTo: mainView.leadingAnchor, constant: 20),
+            bottomBar.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -20),
+            bottomBar.heightAnchor.constraint(equalToConstant: 24)
         ])
+    }
+    
+    @objc private func checkboxToggled() {
+        ContextManager.shared.useContext = (useContextCheckbox.state == .on)
+        print("[SuggestionOverlay] Context toggle: \(ContextManager.shared.useContext)")
+    }
+    
+    /// Updates the context status indicator
+    func updateContextStatus() {
+        if ContextManager.shared.hasSavedContext() {
+            contextStatusLabel.stringValue = "📌 저장된 문맥"
+            contextStatusLabel.textColor = .systemBlue
+        } else {
+            contextStatusLabel.stringValue = ""
+        }
+        useContextCheckbox.state = ContextManager.shared.useContext ? .on : .off
     }
     
     // MARK: - internal helpers
