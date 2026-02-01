@@ -51,15 +51,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             print("[AppDelegate] Shortcut Triggered!")
             guard let self = self else { return }
             
-            // 1. Capture Context
-            if let context = self.contextReader.captureContext() {
-                print("[AppDelegate] Captured: \(context.appName), Selected: \(context.selectedText.prefix(20))...")
+            // 1. FIRST: Capture the focused element BEFORE showing our window
+            //    (Once our window appears, focus shifts to us!)
+            guard let focusedElement = self.contextReader.getFocusedElement() else {
+                print("[AppDelegate] No focused element found")
+                return
+            }
+            
+            // 2. NOW show Loading Window
+            self.suggestionWindow?.showLoading()
+            
+            // 3. Capture Context in Background using the PRE-CAPTURED element
+            DispatchQueue.global(qos: .userInitiated).async {
+                let context = self.contextReader.captureContext(from: focusedElement)
                 
-                // 2. Show Debug View (Development Mode)
-                self.suggestionWindow?.showDebug(context)
-                
-            } else {
-                 print("[AppDelegate] Failed to capture context")
+                // 4. Update UI on Main Thread
+                DispatchQueue.main.async {
+                    if let context = context {
+                        print("[AppDelegate] Captured: \(context.appName), Context: \(context.selectedText.prefix(30))...")
+                        self.suggestionWindow?.showDebug(context)
+                    } else {
+                        print("[AppDelegate] Failed to capture context")
+                        self.suggestionWindow?.hide()
+                    }
+                }
             }
         }
         

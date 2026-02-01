@@ -215,6 +215,23 @@ final class SuggestionOverlayWindow: NSWindow {
         orderOut(nil)
     }
     
+    /// Shows a loading indicator while context is being captured
+    func showLoading() {
+        self.suggestions = []
+        self.selectedIndex = -1
+        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        let loadingLabel = NSTextField(labelWithString: "⏳ Scanning context...")
+        loadingLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+        loadingLabel.textColor = .secondaryLabelColor
+        loadingLabel.alignment = .center
+        
+        stackView.addArrangedSubview(loadingLabel)
+        
+        self.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+    
     /// Debug mode: Display raw captured context for verification
     func showDebug(_ context: CapturedContext) {
         self.suggestions = []
@@ -223,7 +240,13 @@ final class SuggestionOverlayWindow: NSWindow {
         
         let debugText = """
         [APP] \(context.appName)
-        [SELECTED] "\(context.selectedText)"
+        ---------------------------
+        [SELECTED (Context)]
+        "\(context.selectedText)"
+        
+        [VALUE (Input)]
+        "\(context.valueText)"
+        ---------------------------
         [BOUNDS] \(context.selectionBounds ?? .zero)
         """
         
@@ -249,8 +272,12 @@ final class SuggestionOverlayWindow: NSWindow {
         
         stackView.addArrangedSubview(scrollView)
         
-        self.makeKeyAndOrderFront(nil)
-        NSApplication.shared.activate(ignoringOtherApps: true)
+        // Window is already visible from showLoading, just update content
+        // But if called directly, ensure window is shown
+        if !self.isVisible {
+            self.makeKeyAndOrderFront(nil)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+        }
     }
     
     // MARK: - Event Handling
