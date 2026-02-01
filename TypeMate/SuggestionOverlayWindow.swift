@@ -215,6 +215,44 @@ final class SuggestionOverlayWindow: NSWindow {
         orderOut(nil)
     }
     
+    /// Debug mode: Display raw captured context for verification
+    func showDebug(_ context: CapturedContext) {
+        self.suggestions = []
+        self.selectedIndex = -1
+        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        let debugText = """
+        [APP] \(context.appName)
+        [SELECTED] "\(context.selectedText)"
+        [BOUNDS] \(context.selectionBounds ?? .zero)
+        """
+        
+        // Use NSTextView for scrolling and wrapping
+        let textView = NSTextView()
+        textView.string = debugText
+        textView.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        textView.textColor = .labelColor
+        textView.backgroundColor = .clear
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.textContainer?.lineBreakMode = .byCharWrapping
+        textView.textContainer?.widthTracksTextView = true
+        
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.drawsBackground = false
+        scrollView.documentView = textView
+        
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.heightAnchor.constraint(equalToConstant: 300).isActive = true
+        scrollView.widthAnchor.constraint(equalToConstant: 560).isActive = true
+        
+        stackView.addArrangedSubview(scrollView)
+        
+        self.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+    
     // MARK: - Event Handling
     override func keyDown(with event: NSEvent) {
         switch event.keyCode {

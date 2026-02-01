@@ -1,8 +1,14 @@
 import Cocoa
 import ApplicationServices
 
-/// Reads user context by tracking cursor position and focused element.
-/// Only runs when explicitly requested (Passive Mode).
+/// Data structure holding the snapshot of the user's current context
+struct CapturedContext {
+    let appName: String
+    let selectedText: String
+    let selectionBounds: CGRect?
+}
+
+/// Reads user context by focusing ONLY on the selected text.
 final class ContextReader {
     
     // MARK: - Initialization
@@ -11,69 +17,122 @@ final class ContextReader {
     
     // MARK: - Public Methods
     
-    /// Captures the current context immediately.
-    /// - Returns: The cursor position in screen coordinates, or nil if failed.
-    func captureContext() -> CGPoint? {
+    /// Captures the currently selected text.
+    /// - Returns: A `CapturedContext` object containing selected text and bounds.
+    func captureContext() -> CapturedContext? {
         guard AccessibilityPermissionManager.shared.isTrusted else {
             print("[ContextReader] Error: Accessibility permission not granted")
             AccessibilityPermissionManager.shared.requestPermission()
             return nil
         }
         
-        return getFocusedTextCursorPosition()
-    }
-    
-    // MARK: - Accessibility API
-    
-    /// Get the cursor position from the currently focused text field
-    private func getFocusedTextCursorPosition() -> CGPoint? {
-        // Get system-wide focused element
         let systemWide = AXUIElementCreateSystemWide()
         
+        // 1. Get System Focused Element
         var focusedElement: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedElement)
         
         guard result == .success, let element = focusedElement else {
+            print("[ContextReader] Failed to get focused element")
             return nil
         }
         
         let axElement = element as! AXUIElement
         
-        // Get the selected text range to find cursor position
-        var selectedRange: CFTypeRef?
-        let rangeResult = AXUIElementCopyAttributeValue(axElement, kAXSelectedTextRangeAttribute as CFString, &selectedRange)
+        // 2. Identify App Name
+        let appName = getAppName(from: axElement)
         
-        guard rangeResult == .success, let range = selectedRange else {
-            // Fallback: use mouse position if text range fails
-            return NSEvent.mouseLocation
-        }
+        // 3. Read Selected Text
+        let (selectedText, bounds) = readSelectedText(from: axElement)
         
-        // Get bounds for the selected text range
-        var bounds: CFTypeRef?
-        let boundsResult = AXUIElementCopyParameterizedAttributeValue(
-            axElement,
-            kAXBoundsForRangeParameterizedAttribute as CFString,
-            range,
-            &bounds
+        // If no text is selected, we might want to return nil or an empty context.
+        // For now, let's return it anyway to show "No selection" in debug.
+        
+        return CapturedContext(
+            appName: appName,
+            selectedText: selectedText,
+            selectionBounds: bounds
         )
+    }
+    
+    // MARK: - Private Methods
+    
+    private func readSelectedText(from element: AXUIElement) -> (String, CGRect?) {
+        // Try Key: kAXSelectedTextAttribute
+        var value: CFTypeRef?
+        let result = AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &value)
         
-        guard boundsResult == .success, let boundsValue = bounds else {
-            return NSEvent.mouseLocation
+        guard result == .success, let text = value as? String, !text.isEmpty else {
+            return ("", nil)
         }
         
-        // Extract CGRect from AXValue
-        var rect = CGRect.zero
-        if AXValueGetValue(boundsValue as! AXValue, .cgRect, &rect) {
-            // Convert to screen coordinates (bottom-left origin)
-            // The rect gives us the cursor position in screen coordinates
-            let screenHeight = NSScreen.main?.frame.height ?? 0
-            let cursorPoint = CGPoint(
-                x: rect.origin.x + rect.width,
-                y: screenHeight - rect.origin.y - rect.height
-            )
-            return cursorPoint
+        // Try getting bounds of the selection
+        // Method: Use parameterized attribute kAXBoundsForRangeParameterizedAttribute
+        // We first need the selected range
+        
+        var rangeValue: CFTypeRef?
+        var rect: CGRect? = nil
+        
+        if AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeValue) == .success {
+            var boundsValue: CFTypeRef?
+            if AXUIElementCopyParameterizedAttributeValue(element, kAXBoundsForRangeParameterizedAttribute as CFString, rangeValue!, &boundsValue) == .success {
+                 var r = CGRect.zero
+                 if AXValueGetValue(boundsValue as! AXValue, .cgRect, &r) {
+                     // Verify rect is valid (sometimes returns 0,0,0,0 or infinite)
+                     if r.width > 0 && r.height > 0 {
+                         rect = r
+                     }
+                 }
+            }
         }
         
-        return NSEvent.mouseLocation
+        // Fallback: If we can't get selection bounds, try getting the element's bounds
+        if rect == nil {
+            rect = getElementFrame(element)
+        }
+        
+        return (text, rect)
+    }
+    
+    private func getElementFrame(_ element: AXUIElement) -> CGRect? {
+        var position: CFTypeRef?
+        var size: CFTypeRef?
+        
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &position) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &size) == .success else {
+            return nil
+        }
+        
+        var pos = CGPoint.zero
+        var sz = CGSize.zero
+        
+        guard AXValueGetValue(position as! AXValue, .cgPoint, &pos),
+              AXValueGetValue(size as! AXValue, .cgSize, &sz) else {
+            return nil
+        }
+        
+        return CGRect(origin: pos, size: sz)
+    }
+    
+    private func getAppName(from element: AXUIElement) -> String {
+        var current = element
+        while true {
+            var role: CFTypeRef?
+            AXUIElementCopyAttributeValue(current, kAXRoleAttribute as CFString, &role)
+            
+            if let roleStr = role as? String, roleStr == kAXApplicationRole {
+                var title: CFTypeRef?
+                AXUIElementCopyAttributeValue(current, kAXTitleAttribute as CFString, &title)
+                return (title as? String) ?? "Unknown App"
+            }
+            
+            var parent: CFTypeRef?
+            let result = AXUIElementCopyAttributeValue(current, kAXParentAttribute as CFString, &parent)
+            if result != .success || parent == nil {
+                break
+            }
+            current = parent as! AXUIElement
+        }
+        return "Unknown App"
     }
 }

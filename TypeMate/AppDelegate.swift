@@ -52,17 +52,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self = self else { return }
             
             // 1. Capture Context
-            if let _ = self.contextReader.captureContext() {
-                // Future: Use captured context for AI
+            if let context = self.contextReader.captureContext() {
+                print("[AppDelegate] Captured: \(context.appName), Selected: \(context.selectedText.prefix(20))...")
                 
-                // 2. Show Overlay with Mock Data
-                let mockSuggestions = [
-                    "Option 1: I appreciate the offer, but I will have to decline at this time.",
-                    "Option 2: Unfortunately, I cannot accept your invitation. I wish you the best.",
-                    "Option 3: Thank you for reaching out. Perhaps we can discuss this later."
-                ]
-                
-                self.suggestionWindow?.showSuggestions(mockSuggestions)
+                // 2. Show Debug View (Development Mode)
+                self.suggestionWindow?.showDebug(context)
                 
             } else {
                  print("[AppDelegate] Failed to capture context")
