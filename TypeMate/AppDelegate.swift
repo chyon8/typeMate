@@ -218,11 +218,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         requestItem.target = self
         menu.addItem(requestItem)
         
-        // Open settings item
+        // TypeMate Settings item
+        let typemateSettingsItem = NSMenuItem(
+            title: "TypeMate Settings...",
+            action: #selector(openTypeMateSettings),
+            keyEquivalent: ","
+        )
+        typemateSettingsItem.target = self
+        menu.addItem(typemateSettingsItem)
+        
+        // Open accessibility settings item
         let settingsItem = NSMenuItem(
             title: "Open Accessibility Settings...",
             action: #selector(openSettingsClicked),
-            keyEquivalent: ","
+            keyEquivalent: ""
         )
         settingsItem.target = self
         menu.addItem(settingsItem)
@@ -279,6 +288,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc private func openSettingsClicked() {
         permissionManager.openAccessibilitySettings()
+    }
+    
+    @objc private func openTypeMateSettings() {
+        SettingsWindowController.shared.showSettings()
     }
     
     @objc private func quitClicked() {

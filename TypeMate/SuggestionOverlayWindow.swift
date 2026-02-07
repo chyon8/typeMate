@@ -72,6 +72,33 @@ final class SuggestionOverlayWindow: NSWindow {
         return label
     }()
     
+    // Persona/Context Selectors
+    private let personaPopup: NSPopUpButton = {
+        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        popup.font = NSFont.systemFont(ofSize: 12)
+        return popup
+    }()
+    
+    private let contextPopup: NSPopUpButton = {
+        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        popup.font = NSFont.systemFont(ofSize: 12)
+        return popup
+    }()
+    
+    private let modelLabel: NSTextField = {
+        let label = NSTextField(labelWithString: "")
+        label.font = NSFont.systemFont(ofSize: 10)
+        label.textColor = .tertiaryLabelColor
+        label.alignment = .right
+        return label
+    }()
+    
+    /// Captured context for AI generation
+    private var capturedContext: CapturedContext?
+    
+    /// Callback when AI generates suggestions
+    var onAIGenerate: ((CapturedContext?) -> Void)?
+    
     // MARK: - Initialization
     
     init() {
@@ -112,7 +139,44 @@ final class SuggestionOverlayWindow: NSWindow {
         
         contentView = mainView
         
-        // 2. Input Container (Top)
+        // 1.5 Top Bar (Persona + Context selectors)
+        let topBar = NSStackView()
+        topBar.orientation = .horizontal
+        topBar.spacing = 12
+        topBar.alignment = .centerY
+        topBar.distribution = .fill
+        
+        // Persona selector
+        let personaLabel = NSTextField(labelWithString: "페르소나:")
+        personaLabel.font = NSFont.systemFont(ofSize: 11)
+        personaLabel.textColor = .secondaryLabelColor
+        topBar.addArrangedSubview(personaLabel)
+        
+        personaPopup.target = self
+        personaPopup.action = #selector(personaChanged)
+        topBar.addArrangedSubview(personaPopup)
+        
+        // Context selector
+        let contextLabel = NSTextField(labelWithString: "컨텍스트:")
+        contextLabel.font = NSFont.systemFont(ofSize: 11)
+        contextLabel.textColor = .secondaryLabelColor
+        topBar.addArrangedSubview(contextLabel)
+        
+        contextPopup.target = self
+        contextPopup.action = #selector(contextChanged)
+        topBar.addArrangedSubview(contextPopup)
+        
+        // Spacer
+        let spacerTop = NSView()
+        spacerTop.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        topBar.addArrangedSubview(spacerTop)
+        
+        // Model indicator
+        topBar.addArrangedSubview(modelLabel)
+        
+        mainView.addSubview(topBar)
+        
+        // 2. Input Container
         let inputContainer = NSView()
         inputContainer.wantsLayer = true
         inputContainer.layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.3).cgColor
@@ -167,14 +231,21 @@ final class SuggestionOverlayWindow: NSWindow {
         mainView.addSubview(bottomBar)
         
         // Layout
+        topBar.translatesAutoresizingMaskIntoConstraints = false
         inputContainer.translatesAutoresizingMaskIntoConstraints = false
         promptField.translatesAutoresizingMaskIntoConstraints = false
         stackView.translatesAutoresizingMaskIntoConstraints = false
         bottomBar.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
+            // Top Bar
+            topBar.topAnchor.constraint(equalTo: mainView.topAnchor, constant: 12),
+            topBar.leadingAnchor.constraint(equalTo: mainView.leadingAnchor, constant: 20),
+            topBar.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -20),
+            topBar.heightAnchor.constraint(equalToConstant: 24),
+            
             // Input Container
-            inputContainer.topAnchor.constraint(equalTo: mainView.topAnchor, constant: 20),
+            inputContainer.topAnchor.constraint(equalTo: topBar.bottomAnchor, constant: 12),
             inputContainer.leadingAnchor.constraint(equalTo: mainView.leadingAnchor, constant: 20),
             inputContainer.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -20),
             inputContainer.heightAnchor.constraint(equalToConstant: 44),
@@ -185,10 +256,10 @@ final class SuggestionOverlayWindow: NSWindow {
             promptField.trailingAnchor.constraint(equalTo: inputContainer.trailingAnchor, constant: -12),
             
             // Stack View
-            stackView.topAnchor.constraint(equalTo: inputContainer.bottomAnchor, constant: 20),
+            stackView.topAnchor.constraint(equalTo: inputContainer.bottomAnchor, constant: 16),
             stackView.leadingAnchor.constraint(equalTo: mainView.leadingAnchor, constant: 20),
             stackView.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(equalTo: bottomBar.topAnchor, constant: -20),
+            stackView.bottomAnchor.constraint(equalTo: bottomBar.topAnchor, constant: -16),
             
             // Bottom Bar
             bottomBar.bottomAnchor.constraint(equalTo: mainView.bottomAnchor, constant: -12),
@@ -196,6 +267,11 @@ final class SuggestionOverlayWindow: NSWindow {
             bottomBar.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -20),
             bottomBar.heightAnchor.constraint(equalToConstant: 24)
         ])
+        
+        // Initialize dropdowns
+        refreshPersonaPopup()
+        refreshContextPopup()
+        updateModelLabel()
     }
     
     @objc private func checkboxToggled() {
@@ -212,6 +288,61 @@ final class SuggestionOverlayWindow: NSWindow {
             contextStatusLabel.stringValue = ""
         }
         useContextCheckbox.state = ContextManager.shared.useContext ? .on : .off
+    }
+    
+    // MARK: - Dropdown Management
+    
+    private func refreshPersonaPopup() {
+        personaPopup.removeAllItems()
+        for persona in PersonaManager.shared.personas {
+            personaPopup.addItem(withTitle: persona.name)
+        }
+        if let selected = PersonaManager.shared.selectedPersona,
+           let index = PersonaManager.shared.personas.firstIndex(where: { $0.id == selected.id }) {
+            personaPopup.selectItem(at: index)
+        }
+    }
+    
+    private func refreshContextPopup() {
+        contextPopup.removeAllItems()
+        contextPopup.addItem(withTitle: "없음")
+        for ctx in ContextLibrary.shared.contexts {
+            contextPopup.addItem(withTitle: ctx.name)
+        }
+        if let selected = ContextLibrary.shared.selectedContext,
+           let index = ContextLibrary.shared.contexts.firstIndex(where: { $0.id == selected.id }) {
+            contextPopup.selectItem(at: index + 1) // +1 for "없음"
+        }
+    }
+    
+    private func updateModelLabel() {
+        let provider = AIManager.shared.selectedProvider
+        if APIKeyManager.shared.hasKey(for: provider) {
+            modelLabel.stringValue = "🤖 \(provider.displayName)"
+            modelLabel.textColor = .tertiaryLabelColor
+        } else {
+            modelLabel.stringValue = "⚠️ API 키 필요"
+            modelLabel.textColor = .systemOrange
+        }
+    }
+    
+    @objc private func personaChanged() {
+        let index = personaPopup.indexOfSelectedItem
+        guard index >= 0 && index < PersonaManager.shared.personas.count else { return }
+        PersonaManager.shared.select(PersonaManager.shared.personas[index])
+        print("[SuggestionOverlay] Persona changed: \(PersonaManager.shared.selectedPersona?.name ?? "none")")
+    }
+    
+    @objc private func contextChanged() {
+        let index = contextPopup.indexOfSelectedItem
+        if index == 0 {
+            ContextLibrary.shared.select(nil)
+        } else {
+            let ctxIndex = index - 1
+            guard ctxIndex >= 0 && ctxIndex < ContextLibrary.shared.contexts.count else { return }
+            ContextLibrary.shared.select(ContextLibrary.shared.contexts[ctxIndex])
+        }
+        print("[SuggestionOverlay] Context changed: \(ContextLibrary.shared.selectedContext?.name ?? "none")")
     }
     
     // MARK: - internal helpers

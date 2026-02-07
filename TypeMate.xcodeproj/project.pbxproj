@@ -16,6 +16,17 @@
 		B77777777777777777777777 /* InputManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B88888888888888888888888 /* InputManager.swift */; };
 		C11111111111111111111111 /* ContextManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C22222222222222222222222 /* ContextManager.swift */; };
 		C33333333333333333333333 /* ToastWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44444444444444444444444 /* ToastWindow.swift */; };
+		D11111111111111111111111 /* Persona.swift in Sources */ = {isa = PBXBuildFile; fileRef = D22222222222222222222222 /* Persona.swift */; };
+		D33333333333333333333333 /* Context.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44444444444444444444444 /* Context.swift */; };
+		D55555555555555555555555 /* PersonaManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D66666666666666666666666 /* PersonaManager.swift */; };
+		D77777777777777777777777 /* ContextLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D88888888888888888888888 /* ContextLibrary.swift */; };
+		E11111111111111111111111 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E22222222222222222222222 /* AIService.swift */; };
+		E33333333333333333333333 /* APIKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E44444444444444444444444 /* APIKeyManager.swift */; };
+		E55555555555555555555555 /* OpenAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66666666666666666666666 /* OpenAIService.swift */; };
+		E77777777777777777777777 /* GeminiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E88888888888888888888888 /* GeminiService.swift */; };
+		E99999999999999999999999 /* ClaudeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAAAAAAAAAAAAAAAAAAAAAAA /* ClaudeService.swift */; };
+		EBBBBBBBBBBBBBBBBBBBBBBB /* AIManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECCCCCCCCCCCCCCCCCCCCCCCC /* AIManager.swift */; };
+		F11111111111111111111111 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22222222222222222222222 /* SettingsWindow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +42,17 @@
 		B88888888888888888888888 /* InputManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputManager.swift; sourceTree = "<group>"; };
 		C22222222222222222222222 /* ContextManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextManager.swift; sourceTree = "<group>"; };
 		C44444444444444444444444 /* ToastWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastWindow.swift; sourceTree = "<group>"; };
+		D22222222222222222222222 /* Persona.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persona.swift; sourceTree = "<group>"; };
+		D44444444444444444444444 /* Context.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Context.swift; sourceTree = "<group>"; };
+		D66666666666666666666666 /* PersonaManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaManager.swift; sourceTree = "<group>"; };
+		D88888888888888888888888 /* ContextLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextLibrary.swift; sourceTree = "<group>"; };
+		E22222222222222222222222 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
+		E44444444444444444444444 /* APIKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyManager.swift; sourceTree = "<group>"; };
+		E66666666666666666666666 /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
+		E88888888888888888888888 /* GeminiService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiService.swift; sourceTree = "<group>"; };
+		EAAAAAAAAAAAAAAAAAAAAAAA /* ClaudeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeService.swift; sourceTree = "<group>"; };
+		ECCCCCCCCCCCCCCCCCCCCCCCC /* AIManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIManager.swift; sourceTree = "<group>"; };
+		F22222222222222222222222 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,12 +82,15 @@
 				B33333333333333333333333 /* ContextReader.swift */,
 				B44444444444444444444444 /* SuggestionOverlayWindow.swift */,
 				A44444444444444444444444 /* AccessibilityPermissionManager.swift */,
-				A66666666666666666666666 /* Assets.xcassets */,
-				A77777777777777777777777 /* Info.plist */,
-				A88888888888888888888888 /* TypeMate.entitlements */,
 				B88888888888888888888888 /* InputManager.swift */,
 				C22222222222222222222222 /* ContextManager.swift */,
 				C44444444444444444444444 /* ToastWindow.swift */,
+				MODELSGROUP111111111111 /* Models */,
+				SERVICESGROUP1111111111 /* Services */,
+				WINDOWSGROUP11111111111 /* Windows */,
+				A66666666666666666666666 /* Assets.xcassets */,
+				A77777777777777777777777 /* Info.plist */,
+				A88888888888888888888888 /* TypeMate.entitlements */,
 			);
 			path = TypeMate;
 			sourceTree = "<group>";
@@ -76,6 +101,38 @@
 				A00000000000000000000000 /* TypeMate.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		MODELSGROUP111111111111 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				D22222222222222222222222 /* Persona.swift */,
+				D44444444444444444444444 /* Context.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		SERVICESGROUP1111111111 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				D66666666666666666666666 /* PersonaManager.swift */,
+				D88888888888888888888888 /* ContextLibrary.swift */,
+				E22222222222222222222222 /* AIService.swift */,
+				E44444444444444444444444 /* APIKeyManager.swift */,
+				E66666666666666666666666 /* OpenAIService.swift */,
+				E88888888888888888888888 /* GeminiService.swift */,
+				EAAAAAAAAAAAAAAAAAAAAAAA /* ClaudeService.swift */,
+				ECCCCCCCCCCCCCCCCCCCCCCCC /* AIManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		WINDOWSGROUP11111111111 /* Windows */ = {
+			isa = PBXGroup;
+			children = (
+				F22222222222222222222222 /* SettingsWindow.swift */,
+			);
+			path = Windows;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -155,6 +212,17 @@
 				B77777777777777777777777 /* InputManager.swift in Sources */,
 				C11111111111111111111111 /* ContextManager.swift in Sources */,
 				C33333333333333333333333 /* ToastWindow.swift in Sources */,
+				D11111111111111111111111 /* Persona.swift in Sources */,
+				D33333333333333333333333 /* Context.swift in Sources */,
+				D55555555555555555555555 /* PersonaManager.swift in Sources */,
+				D77777777777777777777777 /* ContextLibrary.swift in Sources */,
+				E11111111111111111111111 /* AIService.swift in Sources */,
+				E33333333333333333333333 /* APIKeyManager.swift in Sources */,
+				E55555555555555555555555 /* OpenAIService.swift in Sources */,
+				E77777777777777777777777 /* GeminiService.swift in Sources */,
+				E99999999999999999999999 /* ClaudeService.swift in Sources */,
+				EBBBBBBBBBBBBBBBBBBBBBBB /* AIManager.swift in Sources */,
+				F11111111111111111111111 /* SettingsWindow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
