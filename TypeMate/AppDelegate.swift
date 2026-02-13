@@ -25,6 +25,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Menu item showing current permission status
     private var statusMenuItem: NSMenuItem!
     
+    /// Last captured context for AI generation
+    private var lastCapturedContext: CapturedContext?
+    
     // MARK: - Application Lifecycle
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -32,6 +35,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let isTrusted = permissionManager.isTrusted
         print("[AppDelegate] Initial Permission Status: \(isTrusted ? "TRUSTED" : "NOT TRUSTED")")
         
+        setupMainMenu()
         setupStatusBarItem()
         setupPermissionMonitoring()
         
@@ -88,6 +92,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     )
                     
                     print("[AppDelegate] Captured: \(context.appName), Context: \(context.selectedText.prefix(30))...")
+                    self.lastCapturedContext = context
                     self.suggestionWindow?.showDebug(context)
                 }
             }
@@ -135,41 +140,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
-        // Handle Prompt Submission (Refine Suggestions)
+        // Handle Prompt Submission (Refine with additional instruction)
         suggestionWindow?.onSubmitPrompt = { [weak self] prompt in
             print("[AppDelegate] Prompt Submitted: \(prompt)")
-            
-            var newSuggestions: [String] = []
-            
-            let lowered = prompt.lowercased()
-            
-            if lowered.contains("polite") {
-                 newSuggestions = [
-                    "I sincerely appreciate your kind offer, however, I must respectfully decline.",
-                    "Thank you so much for thinking of me. Unfortunately, I won't be able to make it.",
-                    "It is a great honor, but I will have to pass this time. Warm regards."
-                 ]
-            } else if lowered.contains("short") || lowered.contains("brief") {
-                 newSuggestions = [
-                    "No thanks.",
-                    "Can't make it.",
-                    "Pass."
-                 ]
-            } else if lowered.contains("angry") {
-                 newSuggestions = [
-                    "Stop emailing me.",
-                    "This is unacceptable.",
-                    "I am very disappointed."
-                 ]
-            } else {
-                 newSuggestions = [
-                    "Refined Option 1: Based on \"\(prompt)\"...",
-                    "Refined Option 2: Here is another way to say it...",
-                    "Refined Option 3: A third alternative for you."
-                 ]
-            }
-            
-            self?.suggestionWindow?.showSuggestions(newSuggestions)
+            self?.generateAISuggestions(userInstruction: prompt)
+        }
+        
+        // Handle Generate Button (immediate AI generation)
+        suggestionWindow?.onGenerate = { [weak self] in
+            print("[AppDelegate] Generate Button Pressed!")
+            self?.generateAISuggestions(userInstruction: nil)
         }
         
         suggestionWindow?.onCancel = { [weak self] in
@@ -178,11 +158,81 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
+    // MARK: - AI Generation
+    
+    /// Generates AI suggestions using the captured context
+    private func generateAISuggestions(userInstruction: String?) {
+        guard AIManager.shared.hasAPIKey else {
+            suggestionWindow?.showSuggestions(["⚠️ API 키가 설정되지 않았습니다. 메뉴바 → TypeMate Settings에서 API 키를 입력해주세요."])
+            return
+        }
+        
+        // Show loading state
+        suggestionWindow?.showSuggestions(["⏳ AI가 생성 중입니다..."])
+        
+        // Get current persona
+        let persona = PersonaManager.shared.selectedPersona
+        
+        // Get project context from ContextLibrary
+        let projectContext = ContextLibrary.shared.getSelectedContent()
+        
+        // Get screen context and selection from captured context
+        let screenContext = lastCapturedContext?.selectedText
+        let selection = lastCapturedContext?.valueText
+        
+        AIManager.shared.generateSuggestions(
+            persona: persona,
+            projectContext: projectContext,
+            screenContext: screenContext,
+            selection: selection,
+            userInstruction: userInstruction
+        ) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let suggestions):
+                    print("[AppDelegate] AI returned \(suggestions.count) suggestions")
+                    self?.suggestionWindow?.showSuggestions(suggestions)
+                case .failure(let error):
+                    print("[AppDelegate] AI error: \(error.localizedDescription)")
+                    self?.suggestionWindow?.showSuggestions(["❌ 오류: \(error.localizedDescription)"])
+                }
+            }
+        }
+    }
+    
     // ContextReader is now passive, no setup needed
     
     func applicationWillTerminate(_ notification: Notification) {
         permissionManager.stopMonitoring()
         inputManager.stopMonitoring()
+    }
+    
+    // MARK: - Main Menu Setup
+    
+    /// Creates a standard main menu with an Edit menu
+    /// so that Cmd+C/V/X/A work in text fields (e.g. Settings window).
+    private func setupMainMenu() {
+        let mainMenu = NSMenu()
+        
+        // App menu (required placeholder)
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu()
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+        
+        // Edit menu
+        let editMenuItem = NSMenuItem()
+        let editMenu = NSMenu(title: "Edit")
+        
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
+        
+        NSApp.mainMenu = mainMenu
     }
     
     // MARK: - Status Bar Setup

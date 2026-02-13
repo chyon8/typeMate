@@ -32,21 +32,15 @@ final class ClaudeService: AIServiceProtocol {
         urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Include instruction for multiple suggestions in user prompt
-        let userPromptWithInstruction = """
-        \(request.userPrompt)
-        
-        ---
-        
-        Please provide 3 different suggestion options, numbered 1, 2, 3. Each should be a complete alternative response.
-        """
+        // User prompt already includes all instructions from AIManager
+        let userPromptFinal = request.userPrompt
         
         let body: [String: Any] = [
             "model": model,
             "max_tokens": request.maxTokens,
             "system": request.systemPrompt,
             "messages": [
-                ["role": "user", "content": userPromptWithInstruction]
+                ["role": "user", "content": userPromptFinal]
             ]
         ]
         

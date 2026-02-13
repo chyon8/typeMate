@@ -40,10 +40,6 @@ final class GeminiService: AIServiceProtocol {
         ---
         
         \(request.userPrompt)
-        
-        ---
-        
-        Please provide 3 different suggestion options, numbered 1, 2, 3. Each should be a complete alternative response.
         """
         
         let body: [String: Any] = [

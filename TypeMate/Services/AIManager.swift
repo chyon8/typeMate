@@ -49,32 +49,32 @@ final class AIManager {
         completion: @escaping (Result<[String], AIError>) -> Void
     ) {
         // Build system prompt
-        var systemPrompt = persona?.prompt ?? "You are a helpful AI assistant."
+        var systemPrompt = persona?.prompt ?? "당신은 유능한 AI 어시스턴트입니다. 한국어로 답변하세요."
         
         if let projectContext = projectContext, !projectContext.isEmpty {
-            systemPrompt += "\n\n### Current Project Context:\n\(projectContext)"
+            systemPrompt += "\n\n### 프로젝트 배경 정보:\n\(projectContext)"
         }
         
         // Build user prompt
         var userPrompt = ""
         
         if let screenContext = screenContext, !screenContext.isEmpty {
-            userPrompt += "### Current Screen Context:\n\(screenContext)\n\n"
+            userPrompt += "### 현재 화면 컨텍스트:\n\(screenContext)\n\n"
         }
         
         if let selection = selection, !selection.isEmpty {
-            userPrompt += "### Selected Text (to respond to or transform):\n\(selection)\n\n"
+            userPrompt += "### 선택된 텍스트 (응답 또는 변환 대상):\n\(selection)\n\n"
         }
         
         if let instruction = userInstruction, !instruction.isEmpty {
-            userPrompt += "### User Instruction:\n\(instruction)\n\n"
+            userPrompt += "### 사용자 지시:\n\(instruction)\n\n"
         }
         
         // Default instruction if none provided
         if userPrompt.isEmpty {
-            userPrompt = "Please provide helpful suggestions based on the context."
+            userPrompt = "위 맥락을 바탕으로 3가지 다른 버전의 답변을 1, 2, 3 번호를 붙여서 제시하세요. 각각은 완전한 독립 답변이어야 합니다."
         } else {
-            userPrompt += "Please provide helpful suggestions based on the above context."
+            userPrompt += "위 맥락을 바탕으로 3가지 다른 버전의 답변을 1, 2, 3 번호를 붙여서 제시하세요. 각각은 완전한 독립 답변이어야 합니다. 번호와 답변 내용만 출력하세요."
         }
         
         let request = AIGenerationRequest(

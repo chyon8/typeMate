@@ -20,6 +20,9 @@ final class SuggestionOverlayWindow: NSWindow {
     /// Callback when a prompt is submitted
     var onSubmitPrompt: ((String) -> Void)?
     
+    /// Callback when generate button is pressed (immediate AI generation)
+    var onGenerate: (() -> Void)?
+    
     /// Callback when cancelled
     var onCancel: (() -> Void)?
     
@@ -29,7 +32,7 @@ final class SuggestionOverlayWindow: NSWindow {
     /// Input field for prompts
     private let promptField: InterceptableTextField = {
         let field = InterceptableTextField()
-        field.placeholderString = "Ask AI to edit... (e.g. 'More polite')"
+        field.placeholderString = "추가 지시사항 (예: '더 정중하게', '영어로')"
         field.bezelStyle = .roundedBezel
         field.font = NSFont.systemFont(ofSize: 15, weight: .regular)
         field.drawsBackground = false
@@ -37,6 +40,15 @@ final class SuggestionOverlayWindow: NSWindow {
         field.focusRingType = .none
         field.textColor = .labelColor
         return field
+    }()
+    
+    /// Generate button for immediate AI generation
+    private let generateButton: NSButton = {
+        let button = NSButton(title: "✨ 생성", target: nil, action: nil)
+        button.bezelStyle = .rounded
+        button.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        button.contentTintColor = .systemBlue
+        return button
     }()
     
     /// Stack view to hold suggestion cards
@@ -50,7 +62,7 @@ final class SuggestionOverlayWindow: NSWindow {
     }()
     
     private let hintsLabel: NSTextField = {
-        let label = NSTextField(labelWithString: "⌘↩ Refine  ↩ Insert  Esc to Close")
+        let label = NSTextField(labelWithString: "✨생성  ⌘↩ Refine  ↩ Insert  Esc Close")
         label.font = NSFont.systemFont(ofSize: 11)
         label.textColor = .secondaryLabelColor
         label.alignment = .right
@@ -185,6 +197,12 @@ final class SuggestionOverlayWindow: NSWindow {
         mainView.addSubview(inputContainer)
         inputContainer.addSubview(promptField)
         
+        // Generate button
+        generateButton.target = self
+        generateButton.action = #selector(generateClicked)
+        inputContainer.addSubview(generateButton)
+        generateButton.translatesAutoresizingMaskIntoConstraints = false
+        
         // Setup Field Callbacks
         promptField.onArrowKey = { [weak self] keyCode in
             self?.handleArrowKey(keyCode)
@@ -253,7 +271,12 @@ final class SuggestionOverlayWindow: NSWindow {
             // Prompt Field
             promptField.centerYAnchor.constraint(equalTo: inputContainer.centerYAnchor),
             promptField.leadingAnchor.constraint(equalTo: inputContainer.leadingAnchor, constant: 12),
-            promptField.trailingAnchor.constraint(equalTo: inputContainer.trailingAnchor, constant: -12),
+            promptField.trailingAnchor.constraint(equalTo: inputContainer.trailingAnchor, constant: -80),
+            
+            // Generate Button
+            generateButton.centerYAnchor.constraint(equalTo: inputContainer.centerYAnchor),
+            generateButton.trailingAnchor.constraint(equalTo: inputContainer.trailingAnchor, constant: -8),
+            generateButton.widthAnchor.constraint(equalToConstant: 65),
             
             // Stack View
             stackView.topAnchor.constraint(equalTo: inputContainer.bottomAnchor, constant: 16),
@@ -347,6 +370,10 @@ final class SuggestionOverlayWindow: NSWindow {
     
     // MARK: - internal helpers
     
+    @objc private func generateClicked() {
+        onGenerate?()
+    }
+    
     private func handleArrowKey(_ keyCode: Int) {
         if keyCode == 126 { // Up
              if selectedIndex > -1 {
@@ -403,6 +430,12 @@ final class SuggestionOverlayWindow: NSWindow {
         self.suggestions = []
         self.selectedIndex = -1
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        promptField.stringValue = ""
+        
+        // Refresh dropdowns and model status every time overlay opens
+        refreshPersonaPopup()
+        refreshContextPopup()
+        updateModelLabel()
         
         let loadingLabel = NSTextField(labelWithString: "⏳ Scanning context...")
         loadingLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
@@ -415,8 +448,9 @@ final class SuggestionOverlayWindow: NSWindow {
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
     
-    /// Debug mode: Display raw captured context for verification
+    /// Stores the captured context and shows it ready for generation
     func showDebug(_ context: CapturedContext) {
+        self.capturedContext = context
         self.suggestions = []
         self.selectedIndex = -1
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
