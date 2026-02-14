@@ -84,16 +84,16 @@ final class PersonaManager {
         save()
     }
     
-    /// Selects a persona and updates usage stats
-    func select(_ persona: Persona) {
+    /// Selects a persona and updates usage stats. Pass nil to deselect (empty persona).
+    func select(_ persona: Persona?) {
         selectedPersona = persona
         
         // Update usage stats
-        if let index = personas.firstIndex(where: { $0.id == persona.id }) {
-            personas[index].usageCount += 1
-            personas[index].lastUsed = Date()
-            save()
-        }
+        guard let persona = persona,
+              let index = personas.firstIndex(where: { $0.id == persona.id }) else { return }
+        personas[index].usageCount += 1
+        personas[index].lastUsed = Date()
+        save()
     }
     
     /// Sets a persona as the default

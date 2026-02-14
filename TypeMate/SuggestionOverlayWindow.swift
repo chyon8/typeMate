@@ -317,12 +317,15 @@ final class SuggestionOverlayWindow: NSWindow {
     
     private func refreshPersonaPopup() {
         personaPopup.removeAllItems()
+        personaPopup.addItem(withTitle: "없음")
         for persona in PersonaManager.shared.personas {
             personaPopup.addItem(withTitle: persona.name)
         }
         if let selected = PersonaManager.shared.selectedPersona,
            let index = PersonaManager.shared.personas.firstIndex(where: { $0.id == selected.id }) {
-            personaPopup.selectItem(at: index)
+            personaPopup.selectItem(at: index + 1) // +1 for "없음"
+        } else {
+            personaPopup.selectItem(at: 0) // "없음" selected
         }
     }
     
@@ -351,8 +354,13 @@ final class SuggestionOverlayWindow: NSWindow {
     
     @objc private func personaChanged() {
         let index = personaPopup.indexOfSelectedItem
-        guard index >= 0 && index < PersonaManager.shared.personas.count else { return }
-        PersonaManager.shared.select(PersonaManager.shared.personas[index])
+        if index == 0 {
+            PersonaManager.shared.select(nil)
+        } else {
+            let personaIndex = index - 1
+            guard personaIndex >= 0 && personaIndex < PersonaManager.shared.personas.count else { return }
+            PersonaManager.shared.select(PersonaManager.shared.personas[personaIndex])
+        }
         print("[SuggestionOverlay] Persona changed: \(PersonaManager.shared.selectedPersona?.name ?? "none")")
     }
     

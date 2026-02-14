@@ -48,8 +48,8 @@ final class AIManager {
         userInstruction: String?,
         completion: @escaping (Result<[String], AIError>) -> Void
     ) {
-        // Build system prompt
-        var systemPrompt = persona?.prompt ?? "당신은 유능한 AI 어시스턴트입니다. 한국어로 답변하세요."
+        // Build system prompt (empty if no persona selected)
+        var systemPrompt = persona?.prompt ?? ""
         
         if let projectContext = projectContext, !projectContext.isEmpty {
             systemPrompt += "\n\n### 프로젝트 배경 정보:\n\(projectContext)"
